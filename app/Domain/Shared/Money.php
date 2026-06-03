@@ -33,9 +33,16 @@ final class Money
         $text = ltrim($text, '$');
         $text = trim($text);
 
-        if (! preg_match('/^\d+(\.\d{1,2})?$/', $text)) {
+        // Accept either a plain integer part or one grouped into three-digit
+        // thousands (e.g. "1,234,567"); reject misplaced commas. Strip the
+        // separators only once the grouping is known to be well-formed.
+        $ungrouped = '/^\d+(\.\d{1,2})?$/';
+        $grouped = '/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/';
+        if (! preg_match($ungrouped, $text) && ! preg_match($grouped, $text)) {
             throw new DomainException("\"{$value}\" is not a valid money amount.");
         }
+
+        $text = str_replace(',', '', $text);
 
         [$whole, $fraction] = array_pad(explode('.', $text), 2, '0');
         $fraction = str_pad(substr($fraction, 0, 2), 2, '0');
