@@ -14,11 +14,17 @@ final class InMemoryCartRepository implements CartRepository
 
     public function forOwner(string $ownerId): Cart
     {
-        return $this->carts[$ownerId] ??= new Cart($ownerId);
+        // Return a detached snapshot, never the stored instance: like a real
+        // database-backed repository, changes only persist when save() is
+        // called. Reading also never creates a row — an unknown owner gets a
+        // fresh, unsaved cart.
+        return isset($this->carts[$ownerId])
+            ? clone $this->carts[$ownerId]
+            : new Cart($ownerId);
     }
 
     public function save(Cart $cart): void
     {
-        $this->carts[$cart->ownerId] = $cart;
+        $this->carts[$cart->ownerId] = clone $cart;
     }
 }

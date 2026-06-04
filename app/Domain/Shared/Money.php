@@ -44,9 +44,12 @@ final class Money
 
         $text = str_replace(',', '', $text);
 
-        [$whole, $fraction] = array_pad(explode('.', $text), 2, '0');
-        $fraction = str_pad(substr($fraction, 0, 2), 2, '0');
-        $cents = ((int) $whole) * 100 + (int) $fraction;
+        // The regex above guarantees a pure-digit whole part and a fraction of
+        // at most two digits, so no truncation or numeric-cast guarding is
+        // needed here: a missing fraction defaults to zero cents.
+        $parts = explode('.', $text);
+        $fraction = str_pad($parts[1] ?? '0', 2, '0');
+        $cents = $parts[0] * 100 + $fraction;
 
         return new self($negative ? -$cents : $cents);
     }

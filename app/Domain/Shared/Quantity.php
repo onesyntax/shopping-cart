@@ -37,7 +37,9 @@ final class Quantity
         }
 
         if (is_float($raw)) {
-            if (floor($raw) !== $raw) {
+            // Loose compare: a whole-valued float equals its integer truncation
+            // (2.0 == 2), a fractional one does not (2.5 != 2).
+            if ((int) $raw != $raw) {
                 throw new DomainException('The quantity must be a whole number.');
             }
             $raw = (int) $raw;
