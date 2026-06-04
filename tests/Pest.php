@@ -18,7 +18,13 @@ use Tests\TestCase;
 |
 */
 
-pest()->extend(TestCase::class)->in('Feature');
+pest()->extend(TestCase::class)
+    ->beforeEach(function () {
+        // Feature tests exercise controllers and views, not the asset pipeline,
+        // so stub Vite rather than requiring a built manifest.
+        $this->withoutVite();
+    })
+    ->in('Feature');
 
 /*
 |--------------------------------------------------------------------------
