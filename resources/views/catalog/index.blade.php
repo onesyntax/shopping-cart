@@ -43,7 +43,7 @@
                         <label class="sr-only" for="qty-{{ $index }}">Quantity of {{ $item->name }}</label>
                         <input id="qty-{{ $index }}" type="number" name="quantity" value="1" min="1" step="1"
                                class="w-16 border border-rule-strong bg-ink-2 px-3 py-2.5 text-center text-sm tabular-nums focus:border-vermilion focus:outline-none">
-                        <button type="submit"
+                        <button type="submit" data-testid="add-{{ str($item->name)->slug() }}"
                                 class="flex-1 bg-bone px-4 py-2.5 text-sm uppercase tracking-[0.2em] text-ink font-medium transition-colors duration-200 hover:bg-vermilion hover:text-ink">
                             Add to cart
                         </button>

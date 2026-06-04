@@ -26,3 +26,9 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Pest browser test failure screenshots
+/tests/Browser/Screenshots
+
+# Persistent sqlite DB for the continuous browser-test session
+/database/browser-tests.sqlite

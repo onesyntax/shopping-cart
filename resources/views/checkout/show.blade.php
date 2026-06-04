@@ -52,7 +52,7 @@
                     <input type="text" name="card_token" value="valid" required
                            class="flex-1 border border-rule-strong bg-ink-2 px-4 py-3 text-sm focus:border-vermilion focus:outline-none"
                            placeholder="Card token">
-                    <button type="submit"
+                    <button type="submit" data-testid="pay-card"
                             class="bg-vermilion px-7 py-3 text-sm uppercase tracking-[0.2em] text-ink font-semibold hover:bg-vermilion-deep transition-colors">
                         Pay by card
                     </button>
@@ -76,7 +76,7 @@
                         <input type="date" name="deposit_date" required
                                class="border border-rule-strong bg-ink-2 px-4 py-3 text-sm focus:border-vermilion focus:outline-none [color-scheme:dark]">
                     </div>
-                    <button type="submit"
+                    <button type="submit" data-testid="pay-bank-deposit"
                             class="bg-bone px-7 py-3 text-sm uppercase tracking-[0.2em] text-ink font-semibold hover:bg-vermilion transition-colors">
                         Record deposit
                     </button>
@@ -90,7 +90,7 @@
                     <p class="text-sm text-bone-dim flex-1 mb-6">We send it out; you pay the courier when it arrives.</p>
                     <form method="POST" action="{{ route('checkout.cash-on-delivery') }}">
                         @csrf
-                        <button type="submit"
+                        <button type="submit" data-testid="pay-cash-on-delivery"
                                 class="w-full border border-rule-strong px-6 py-3 text-sm uppercase tracking-[0.2em] text-bone hover:bg-bone hover:text-ink hover:border-bone transition-colors">
                             Order, pay on delivery
                         </button>
@@ -102,7 +102,7 @@
                     <p class="text-sm text-bone-dim flex-1 mb-6">Paying at the counter. Settled and invoiced at once.</p>
                     <form method="POST" action="{{ route('checkout.cash-on-hand') }}">
                         @csrf
-                        <button type="submit"
+                        <button type="submit" data-testid="pay-cash-on-hand"
                                 class="w-full border border-rule-strong px-6 py-3 text-sm uppercase tracking-[0.2em] text-bone hover:bg-bone hover:text-ink hover:border-bone transition-colors">
                             Pay cash now
                         </button>
