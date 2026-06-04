@@ -24,23 +24,22 @@ use App\Domain\Shared\ReferenceGenerator;
  * gateway places no order, leaves the cart untouched, and notifies the shopper
  * why the payment did not go through.
  */
-final class CheckoutByCard
+final class CheckoutByCard extends InvoicedCheckout
 {
-    use IssuesOrders;
-
     public function __construct(
-        private readonly CartRepository $carts,
-        private readonly OrderRepository $orders,
-        private readonly InvoiceRepository $invoices,
+        CartRepository $carts,
+        OrderRepository $orders,
+        InvoiceRepository $invoices,
         private readonly CardPaymentGateway $gateway,
-        private readonly Notifier $notifier,
-        private readonly ReferenceGenerator $references,
-    ) {}
+        Notifier $notifier,
+        ReferenceGenerator $references,
+    ) {
+        parent::__construct($carts, $orders, $invoices, $notifier, $references);
+    }
 
     public function handle(CheckoutByCardInput $input): Order
     {
-        $cart = $this->carts->forOwner($input->ownerId);
-        $this->guardNotEmpty($cart);
+        $cart = $this->cartFor($input->ownerId);
 
         $result = $this->gateway->charge($cart->total(), new Card($input->cardToken));
 
@@ -55,7 +54,7 @@ final class CheckoutByCard
         }
 
         $order = new Order(
-            reference: $this->newOrderReference($this->references),
+            reference: $this->newOrderReference(),
             ownerId: $input->ownerId,
             lines: $this->snapshotLines($cart),
             paymentMethod: PaymentMethod::Card,
@@ -63,11 +62,6 @@ final class CheckoutByCard
             paymentReference: $result->reference,
         );
 
-        $this->orders->save($order);
-        $this->issueInvoice($this->invoices, $this->references, $order);
-        $this->emptyCart($this->carts, $cart);
-        $this->notifier->notify(Notification::orderPaid($order));
-
-        return $order;
+        return $this->place($cart, $order, $this->invoices, Notification::orderPaid(...));
     }
 }
