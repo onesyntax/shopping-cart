@@ -11,6 +11,13 @@ interface ItemRepository
     public function existsByName(string $name): bool;
 
     /**
+     * Every item in the catalog, in the order it was added.
+     *
+     * @return list<Item>
+     */
+    public function all(): array;
+
+    /**
      * Insert or overwrite the item identified by its name.
      */
     public function save(Item $item): void;

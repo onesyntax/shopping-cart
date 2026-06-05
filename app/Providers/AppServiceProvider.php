@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Application\Cart\ViewCart;
 use App\Domain\Cart\CartRepository;
 use App\Domain\Catalog\ItemRepository;
 use App\Domain\Checkout\CardPaymentGateway;
@@ -11,13 +12,16 @@ use App\Domain\Checkout\InvoiceRepository;
 use App\Domain\Checkout\OrderRepository;
 use App\Domain\Notification\Notifier;
 use App\Domain\Shared\ReferenceGenerator;
+use App\Http\Support\CurrentShopper;
 use App\Infrastructure\Notification\RecordingNotifier;
 use App\Infrastructure\Payment\FakeCardPaymentGateway;
-use App\Infrastructure\Persistence\InMemory\InMemoryCartRepository;
-use App\Infrastructure\Persistence\InMemory\InMemoryInvoiceRepository;
-use App\Infrastructure\Persistence\InMemory\InMemoryItemRepository;
-use App\Infrastructure\Persistence\InMemory\InMemoryOrderRepository;
-use App\Infrastructure\Shared\SequentialReferenceGenerator;
+use App\Infrastructure\Persistence\Eloquent\EloquentCartRepository;
+use App\Infrastructure\Persistence\Eloquent\EloquentInvoiceRepository;
+use App\Infrastructure\Persistence\Eloquent\EloquentItemRepository;
+use App\Infrastructure\Persistence\Eloquent\EloquentOrderRepository;
+use App\Infrastructure\Shared\DatabaseReferenceGenerator;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\View as ViewFacade;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -25,19 +29,20 @@ use Illuminate\Support\ServiceProvider;
  * implementations. This is the only place the inner layers are connected to
  * concrete adapters, honouring the Dependency Rule.
  *
- * Bindings are singletons so that, within a single request or test, every use
- * case shares the same in-memory state.
+ * The repositories are Eloquent-backed so the cart, catalog and orders persist
+ * across HTTP requests. Bindings are singletons; the repositories are stateless,
+ * so a shared instance is safe and every use case resolves the same adapter.
  */
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(ReferenceGenerator::class, SequentialReferenceGenerator::class);
+        $this->app->singleton(ReferenceGenerator::class, DatabaseReferenceGenerator::class);
 
-        $this->app->singleton(ItemRepository::class, InMemoryItemRepository::class);
-        $this->app->singleton(CartRepository::class, InMemoryCartRepository::class);
-        $this->app->singleton(OrderRepository::class, InMemoryOrderRepository::class);
-        $this->app->singleton(InvoiceRepository::class, InMemoryInvoiceRepository::class);
+        $this->app->singleton(ItemRepository::class, EloquentItemRepository::class);
+        $this->app->singleton(CartRepository::class, EloquentCartRepository::class);
+        $this->app->singleton(OrderRepository::class, EloquentOrderRepository::class);
+        $this->app->singleton(InvoiceRepository::class, EloquentInvoiceRepository::class);
 
         $this->app->singleton(Notifier::class, RecordingNotifier::class);
         $this->app->singleton(CardPaymentGateway::class, FakeCardPaymentGateway::class);
@@ -45,6 +50,20 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // The storefront layout shows a live cart count in its header. Compose
+        // it from the same ViewCart use case the cart page uses, so the badge
+        // and the page can never disagree. Guarded for console runs with no
+        // HTTP session.
+        ViewFacade::composer('layouts.app', function (View $view): void {
+            $count = 0;
+
+            if (request()->hasSession()) {
+                $count = $this->app->make(ViewCart::class)
+                    ->handle(CurrentShopper::id(request()))
+                    ->lineCount();
+            }
+
+            $view->with('cartCount', $count);
+        });
     }
 }

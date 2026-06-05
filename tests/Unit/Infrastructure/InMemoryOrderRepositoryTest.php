@@ -22,11 +22,11 @@ function orderFor(string $ownerId, string $reference): Order
 }
 
 it('returns null when an owner has no orders', function () {
-    expect((new InMemoryOrderRepository())->latestForOwner('alice'))->toBeNull();
+    expect((new InMemoryOrderRepository)->latestForOwner('alice'))->toBeNull();
 });
 
 it('returns the most recently saved order for an owner', function () {
-    $repo = new InMemoryOrderRepository();
+    $repo = new InMemoryOrderRepository;
     $repo->save(orderFor('alice', 'ORD-1'));
     $repo->save(orderFor('alice', 'ORD-2'));
 
@@ -34,7 +34,7 @@ it('returns the most recently saved order for an owner', function () {
 });
 
 it('keeps orders separate per owner', function () {
-    $repo = new InMemoryOrderRepository();
+    $repo = new InMemoryOrderRepository;
     $repo->save(orderFor('alice', 'ORD-1'));
     $repo->save(orderFor('bob', 'ORD-2'));
 

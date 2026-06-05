@@ -22,6 +22,12 @@ final class InMemoryItemRepository implements ItemRepository
         return isset($this->items[$name]);
     }
 
+    /** @return list<Item> */
+    public function all(): array
+    {
+        return array_values($this->items);
+    }
+
     public function save(Item $item): void
     {
         $this->items[$item->name] = $item;

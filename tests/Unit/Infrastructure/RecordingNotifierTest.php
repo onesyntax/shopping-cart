@@ -12,7 +12,7 @@ function note(string $recipient): Notification
 }
 
 it('records every notification it is given', function () {
-    $notifier = new RecordingNotifier();
+    $notifier = new RecordingNotifier;
     $first = note('alice');
     $second = note('bob');
 
@@ -23,7 +23,7 @@ it('records every notification it is given', function () {
 });
 
 it('returns the most recent notification for a recipient', function () {
-    $notifier = new RecordingNotifier();
+    $notifier = new RecordingNotifier;
     $older = note('alice');
     $newer = note('alice');
 
@@ -35,5 +35,5 @@ it('returns the most recent notification for a recipient', function () {
 });
 
 it('returns null when a recipient has no notifications', function () {
-    expect((new RecordingNotifier())->lastFor('nobody'))->toBeNull();
+    expect((new RecordingNotifier)->lastFor('nobody'))->toBeNull();
 });
