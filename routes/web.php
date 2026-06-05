@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\CatalogController;
-use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\OrderController;
+use App\Cart\Infrastructure\Http\CartController;
+use App\Catalog\Infrastructure\Http\CatalogController;
+use App\Checkout\Infrastructure\Http\CheckoutController;
+use App\Checkout\Infrastructure\Http\OrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [CatalogController::class, 'index'])->name('catalog.index');
