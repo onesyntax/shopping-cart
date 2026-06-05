@@ -41,7 +41,7 @@
         </div>
 
         <div class="flex items-center gap-4 pt-2">
-            <button type="submit"
+            <button type="submit" data-testid="add-to-catalogue"
                     class="bg-bone px-6 py-3 text-sm uppercase tracking-[0.2em] text-ink font-medium transition-colors duration-200 hover:bg-vermilion hover:text-ink">
                 Add to catalogue
             </button>

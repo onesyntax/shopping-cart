@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 use App\Domain\Catalog\Item;
 use App\Domain\Shared\Money;
 use App\Infrastructure\Persistence\InMemory\InMemoryItemRepository;
@@ -25,6 +26,32 @@ pest()->extend(TestCase::class)
         $this->withoutVite();
     })
     ->in('Feature');
+
+/*
+|--------------------------------------------------------------------------
+| Browser Test Case
+|--------------------------------------------------------------------------
+|
+| Browser tests drive a real Chromium via Playwright (Pest 4's browser
+| plugin) against the storefront's actual HTML, CSS and JS. Pest serves the
+| app in-process, against a persistent sqlite file.
+|
+| The suite runs as ONE continuous shopping session: the database is reset
+| once per run, never between tests, so each test builds on the last (see
+| Tests\Support\Browser\ContinuousSession). Tests therefore run in file order
+| — do not randomise this suite.
+|
+| Unlike Feature tests, the browser loads real assets, so Vite is NOT stubbed:
+| run `npm run build` (the `test:browser` composer script does this) before
+| this suite so a manifest exists.
+|
+*/
+
+pest()->extend(TestCase::class)
+    ->beforeEach(function () {
+        Tests\Support\Browser\ContinuousSession::boot($this->app);
+    })
+    ->in('Browser');
 
 /*
 |--------------------------------------------------------------------------

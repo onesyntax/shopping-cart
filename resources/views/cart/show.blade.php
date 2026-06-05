@@ -46,7 +46,7 @@
                                     @csrf
                                     @method('DELETE')
                                     <input type="hidden" name="item_name" value="{{ $line->itemName }}">
-                                    <button type="submit"
+                                    <button type="submit" data-testid="remove-{{ str($line->itemName)->slug() }}"
                                             class="text-[11px] uppercase tracking-[0.2em] text-bone-dim hover:text-vermilion transition-colors">
                                         Remove
                                     </button>
