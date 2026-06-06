@@ -4,4 +4,4 @@ default:
       paths:
         - '%paths.base%/features'
       contexts:
-        - Tests\Behat\FeatureContext
+        - App\Foundation\Tests\Behat\FeatureContext

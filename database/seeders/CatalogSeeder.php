@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Application\Catalog\AddItemToCatalog;
-use App\Application\Catalog\AddItemToCatalogInput;
-use App\Domain\Catalog\DuplicateItemName;
+use App\Catalog\Domain\DuplicateItemName;
+use App\Catalog\UseCases\AddItemToCatalog;
+use App\Catalog\UseCases\Inputs\AddItemToCatalogInput;
 use Illuminate\Database\Seeder;
 
 /**

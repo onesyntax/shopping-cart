@@ -1,58 +1,128 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Shopping Cart
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A shopping-cart application built on **Laravel 13 / PHP 8.3**, developed
+test-first against executable Gherkin specifications and structured around
+**Clean Architecture**.
 
-## About Laravel
+It supports browsing a catalog, adding and removing items in a cart, and
+checking out through four payment methods — card, bank deposit, cash on
+delivery, and cash on hand. Money is handled exclusively in **integer cents**,
+never as floats.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Behaviour as the source of truth
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Behaviour is specified up front as Gherkin feature files under `features/`,
+and every scenario is an executable acceptance test (run with Behat). The
+specs — not the code — are the authority on domain behaviour and validation
+rules.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Architecture
 
-## Learning Laravel
+The project strictly follows **Clean Architecture**, organised
+**component-first, layer-second** (Screaming Architecture): the top level of
+`app/` says what the system *does*, and each component carries its own Clean
+Architecture layers as sub-folders.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+app/
+  Cart/                  ─┐
+  Catalog/                ├ core business capabilities
+  Checkout/              ─┘
+    Domain/                entities, value objects, domain events, repo + gateway interfaces
+    UseCases/              one class per use case (orchestration)
+      Inputs/              request/input DTOs
+    Infrastructure/        the outer ring (framework-touching adapters):
+      <Component>ServiceProvider.php   composition root (its bindings)
+      Http/                controllers + form requests (inbound adapter)
+      Persistence/         Eloquent + InMemory repositories (Models/ holds Eloquent records)
+      Payment/             payment-gateway adapters (Checkout only)
+    Tests/                 Unit/ (no framework) and Feature/ (real framework)
+  Foundation/            cross-cutting shared kernel — Money, Quantity, ReferenceGenerator,
+                         notifications, CurrentShopper — plus the cross-cutting test suites
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### The Dependency Rule
 
-## Contributing
+Source-code dependencies point **only inward**:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Domain** depends on nothing. Pure PHP — no Laravel, no Eloquent, no
+  facades, no I/O.
+- **Application (UseCases)** depends only on Domain and on the interfaces it
+  declares (repositories, gateways).
+- **Interface Adapters** (controllers, validators, Eloquent repositories,
+  payment adapters) depend on Application and Domain.
+- **Frameworks & Drivers** (Laravel, Eloquent, routes, migrations, SDKs, the
+  DB) sit in the outermost ring.
 
-## Code of Conduct
+Boundaries are crossed only through interfaces defined in the inner layer;
+data crosses as plain DTOs / value objects, never as Eloquent models or
+`Request` objects. There is **no central `AppServiceProvider`** — each
+component owns a `<Component>ServiceProvider` (listed in
+`bootstrap/providers.php`) that registers only its own bindings.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The use cases per component:
 
-## Security Vulnerabilities
+- **Catalog** — `AddItemToCatalog`, `ListCatalog`
+- **Cart** — `AddItemToCart`, `RemoveItemFromCart`, `ViewCart`
+- **Checkout** — `CheckoutByCard`, `CheckoutByBankDeposit`,
+  `CheckoutByCashOnDelivery`, `CheckoutByCashOnHand`, plus
+  `OrderConfirmation` / `ViewOrderConfirmation`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Getting started
+
+Requires PHP 8.3+, Composer, and Node.
+
+```bash
+composer setup     # install deps, .env, key, migrate, npm install + build
+composer dev       # serve app + queue worker + logs (pail) + vite, all at once
+```
+
+`composer dev` runs the server, queue listener, log tailer, and Vite
+concurrently. The app then serves at `http://127.0.0.1:8000`.
+
+## Testing & TDD
+
+All production code is written **test-first** (Red → Green → Refactor). Tests
+use **Pest** and are **co-located** with the component they cover under
+`app/<Component>/Tests/`:
+
+- `Tests/Unit/` — fast, isolated Domain + UseCase tests (no framework, no DB).
+- `Tests/Feature/` — outer-layer tests against the real framework
+  (`RefreshDatabase`).
+
+Cross-cutting test code (the Behat acceptance suite, the end-to-end browser
+journey, `ContainerBindingsTest`, the shared `TestCase`, helpers) lives under
+`app/Foundation/Tests/`. The only thing left in top-level `tests/` is
+`Pest.php`, Pest's bootstrap.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `composer setup` | Install deps, create `.env`, generate key, migrate, build assets |
+| `composer dev` | Run server + queue + logs + Vite concurrently |
+| `vendor/bin/pest` (or `php artisan test`) | Run the Pest unit + feature suite |
+| `composer test` | Clear config, then run the full test suite |
+| `vendor/bin/behat` | Run the Gherkin acceptance suite |
+| `composer test:browser` | Build assets, then run the Pest 4 / Playwright browser suite |
+| `composer mutate` | Mutation testing (`pest --mutate --parallel --everything`) |
+| `composer crap` | CRAP score analysis (coverage + complexity) |
+| `composer dry` | Code-clone / DRY analysis |
+| `vendor/bin/pint` | Code style (Laravel Pint) |
+| `php artisan tinker` | REPL |
+
+### Tooling notes
+
+- **Money in cents.** All amounts use the `Money` value object and integer
+  cents — never floats.
+- **Behat / Laravel pin.** Behat caps `symfony/console` at ^7, so Laravel is
+  pinned to **`laravel/framework 13.11.2`** (its `symfony/http-kernel` 8.0.x
+  tolerates the Symfony 7.4 components Behat needs). Do **not** bump to
+  13.12+ without revisiting this — it re-breaks Behat.
+- `phpunit.xml` discovers tests via the `app/*/Tests/Unit` and
+  `app/*/Tests/Feature` testsuite globs and excludes `app/*/Tests` from
+  coverage/mutation.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

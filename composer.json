@@ -29,11 +29,14 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "exclude-from-classmap": [
+            "/Tests/"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "App\\Foundation\\Tests\\": "app/Foundation/Tests/"
         }
     },
     "scripts": {
@@ -55,7 +58,7 @@
         ],
         "mutate": [
             "@php artisan config:clear --ansi",
-            "@php vendor/bin/pest --mutate --parallel --everything @no_additional_args"
+            "@php vendor/bin/pest --mutate --parallel --everything --ignore=app/*/Tests,app/*/Infrastructure @no_additional_args"
         ],
         "crap": [
             "@php artisan config:clear --ansi",
@@ -68,7 +71,7 @@
         "test:browser": [
             "@php artisan config:clear --ansi",
             "npm run build",
-            "@php vendor/bin/pest tests/Browser @no_additional_args"
+            "@php vendor/bin/pest app/Foundation/Tests/Browser @no_additional_args"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

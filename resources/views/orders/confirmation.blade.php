@@ -5,9 +5,9 @@
 @php
     $order = $confirmation->order;
     $statusLabel = match ($order->status) {
-        \App\Domain\Checkout\OrderStatus::Paid => 'Paid',
-        \App\Domain\Checkout\OrderStatus::AwaitingDepositConfirmation => 'Awaiting deposit confirmation',
-        \App\Domain\Checkout\OrderStatus::AwaitingPaymentOnDelivery => 'Awaiting payment on delivery',
+        \App\Checkout\Domain\OrderStatus::Paid => 'Paid',
+        \App\Checkout\Domain\OrderStatus::AwaitingDepositConfirmation => 'Awaiting deposit confirmation',
+        \App\Checkout\Domain\OrderStatus::AwaitingPaymentOnDelivery => 'Awaiting payment on delivery',
     };
     $isPaid = $order->isPaid();
 @endphp

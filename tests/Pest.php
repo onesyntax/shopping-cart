@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Domain\Catalog\Item;
-use App\Domain\Shared\Money;
-use App\Infrastructure\Persistence\InMemory\InMemoryItemRepository;
-use Tests\TestCase;
+use App\Catalog\Domain\Item;
+use App\Catalog\Infrastructure\Persistence\InMemoryItemRepository;
+use App\Foundation\Domain\Money;
+use App\Foundation\Tests\Support\Browser\ContinuousSession;
+use App\Foundation\Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,7 +26,15 @@ pest()->extend(TestCase::class)
         // so stub Vite rather than requiring a built manifest.
         $this->withoutVite();
     })
-    ->in('Feature');
+    // Tests live with their component under app/<Component>/Tests/Feature. Only
+    // this Pest.php stays in tests/ — Pest pins its bootstrap here by convention
+    // (like phpunit.xml at the project root); everything else moved to Foundation.
+    ->in(
+        __DIR__.'/../app/Cart/Tests/Feature',
+        __DIR__.'/../app/Catalog/Tests/Feature',
+        __DIR__.'/../app/Checkout/Tests/Feature',
+        __DIR__.'/../app/Foundation/Tests/Feature',
+    );
 
 /*
 |--------------------------------------------------------------------------
@@ -38,7 +47,7 @@ pest()->extend(TestCase::class)
 |
 | The suite runs as ONE continuous shopping session: the database is reset
 | once per run, never between tests, so each test builds on the last (see
-| Tests\Support\Browser\ContinuousSession). Tests therefore run in file order
+| App\Foundation\Tests\Support\Browser\ContinuousSession). Tests therefore run in file order
 | — do not randomise this suite.
 |
 | Unlike Feature tests, the browser loads real assets, so Vite is NOT stubbed:
@@ -49,9 +58,9 @@ pest()->extend(TestCase::class)
 
 pest()->extend(TestCase::class)
     ->beforeEach(function () {
-        Tests\Support\Browser\ContinuousSession::boot($this->app);
+        ContinuousSession::boot($this->app);
     })
-    ->in('Browser');
+    ->in(__DIR__.'/../app/Foundation/Tests/Browser');
 
 /*
 |--------------------------------------------------------------------------

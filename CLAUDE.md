@@ -46,33 +46,57 @@ outer layers.
 - Data crosses boundaries as plain DTOs / value objects, never as Eloquent
   models or `Request` objects.
 
-### Proposed directory layout (PSR-4 `App\` → `app/`)
+### Directory layout — Screaming Architecture (PSR-4 `App\` → `app/`)
+
+Organised **component-first, layer-second**: the top level of `app/` screams
+what the system *does* (Cart, Catalog, Checkout), not what framework it uses.
+Each component carries its own Clean Architecture layers as sub-folders, so the
+dependency rule stays visible *inside* every component.
 
 ```
 app/
-  Domain/                  # entities, value objects, domain events, repo + gateway interfaces
-    Cart/
-    Catalog/
-    Checkout/
-    Shared/                # Money, Quantity, etc.
-  Application/             # use cases (one class each) + input/output DTOs
-    Cart/
-    Checkout/
-  Infrastructure/          # Eloquent repositories, payment gateways, framework adapters
-    Persistence/Eloquent/
-    Payment/
-  Http/                    # controllers, form requests, presenters (thin; delegate to use cases)
-  Providers/               # interface → implementation bindings
+  Cart/                    # ─┐
+  Catalog/                 #  ├ core business capabilities (the headline)
+  Checkout/                # ─┘
+    Domain/                #   entities, value objects, domain events, repo + gateway interfaces
+    UseCases/              #   one class per use case (orchestration)
+      Inputs/              #     request/input DTOs for those use cases
+    Infrastructure/        #   the outer ring (all framework-touching adapters):
+      <Component>ServiceProvider.php   #   the component's composition root (its bindings)
+      Http/                #     controllers + form requests (inbound/driving adapter)
+      Persistence/         #     Eloquent + InMemory repositories
+        Models/            #       Eloquent records
+      Payment/             #     payment-gateway adapters (Checkout only)
+  Foundation/              # cross-cutting support, not a business capability —
+                           # the shared kernel and notifications merged into one component:
+    Domain/                #   Money, Quantity, ReferenceGenerator, DomainException,
+                           #   Notification, NotificationKind, NotificationLine, Notifier
+    Infrastructure/        #   DatabaseReferenceGenerator, SequentialReferenceGenerator, RecordingNotifier
+      FoundationServiceProvider.php    #   composition root for shared/notification bindings
+      Http/                #     CurrentShopper
+      Persistence/Models/  #     ReferenceSequenceRecord
 ```
 
+There is **no central `AppServiceProvider`**. Each component owns a
+`<Component>ServiceProvider` in its `Infrastructure/` that registers only its
+own interface → implementation bindings; they are listed in
+`bootstrap/providers.php`. No provider knows about another component's wiring.
+
+Inner→outer dependency rule is unchanged: `Domain` depends on nothing,
+`UseCases` only on `Domain`, `Infrastructure` (incl. `Http`) on the inner
+layers. Per the Hexagonal split, `Infrastructure/Http` is the *inbound/driving*
+adapter (it calls *into* use cases) and lives alongside the *outbound/driven*
+adapters (`Persistence`, `Payment`) under one `Infrastructure/` outer ring.
+
 Keep Laravel artifacts (Eloquent models, migrations, routes, providers) in the
-outer layers only. Eloquent models live in `Infrastructure`, not `Domain`.
+outer layers only. Eloquent models live under `<Component>/Infrastructure/
+Persistence/Models`, never in `Domain`.
 
 ## Working rules
 
 - **Controllers stay thin.** They validate input, call a single use case, and
   hand the result to a presenter. No business logic in controllers.
-- **No Eloquent in Domain or Application.** Persist through repository
+- **No Eloquent in Domain or UseCases.** Persist through repository
   interfaces; implement them with Eloquent in `Infrastructure`.
 - **Money in cents.** Use a `Money` value object; never store or compute money
   as a float.
@@ -105,12 +129,31 @@ Rules:
 
 ### Pest for tests
 
-Tests are written with **Pest**. Layout under `tests/`:
+Tests are written with **Pest** and **co-located with the component they
+cover**, under `app/<Component>/Tests/`:
 
-- `tests/Unit/` — fast, isolated tests for Domain and Application (no
-  framework, no DB). These are where most TDD cycles happen.
-- `tests/Feature/` — tests that exercise the outer layers (HTTP, Eloquent
-  repositories) against the real framework.
+- `app/<Component>/Tests/Unit/` — fast, isolated tests for that component's
+  Domain and UseCases (no framework, no DB). Most TDD cycles happen here.
+- `app/<Component>/Tests/Feature/` — tests that exercise the component's outer
+  layers (HTTP, Eloquent repositories) against the real framework
+  (`uses(RefreshDatabase::class)`).
+
+`phpunit.xml` discovers these via the `app/*/Tests/Unit` and `app/*/Tests/Feature`
+testsuite globs, and `<source>` excludes `app/*/Tests` so coverage and mutation
+never target test code. The framework base case (`App\Foundation\Tests\TestCase` +
+`withoutVite`) is bound to the Feature directories in `tests/Pest.php`.
+
+Genuinely **cross-cutting** test code lives in **`app/Foundation/Tests/`** (the
+shared/cross-cutting component): the Behat acceptance suite (`Behat/`,
+`Acceptance/`), the end-to-end `Browser/` journey, `ContainerBindingsTest`
+(asserts every component's bindings), the shared `TestCase`, and `Support/`
+helpers — all namespaced `App\Foundation\Tests\…`.
+
+The **only** thing left under top-level `tests/` is `Pest.php` — Pest's
+bootstrap/config (global helpers, the `pest()->extend(...)->in(...)` bindings).
+Pest pins this to `tests/Pest.php` by convention (the same kind of tool entry-point
+constraint as `phpunit.xml` at the project root and `behat.yml`); it cannot move,
+so it stays as the lone bootstrap and points `->in()` at the component test dirs.
 
 Use Pest's `it()` / `test()` style and datasets for the validation tables in the
 feature files (e.g. zero / negative / fractional quantities).
@@ -124,9 +167,10 @@ Gherkin suite to check that all documented behaviours are covered and that none
 have regressed.
 
 > Tooling note: **Behat** (`vendor/bin/behat`) runs the `.feature` files.
-> `tests/Behat/FeatureContext.php` is a thin catch-all that delegates every step
-> to a regex-based step engine in `tests/Acceptance/ShoppingCartContext.php`.
-> Configured in `behat.yml`.
+> `app/Foundation/Tests/Behat/FeatureContext.php` is a thin catch-all that
+> delegates every step to a regex-based step engine in
+> `app/Foundation/Tests/Acceptance/ShoppingCartContext.php`. The context class
+> (`App\Foundation\Tests\Behat\FeatureContext`) is wired in `behat.yml`.
 >
 > Behat caps `symfony/console` at ^7, so it cannot run against Symfony 8. Laravel
 > is therefore pinned to **`laravel/framework 13.11.2`**, whose
@@ -143,11 +187,13 @@ have regressed.
 
 ## Setup status
 
-- Pest and Behat are installed and green: Pest covers the Domain/Application unit
-  tests under `tests/Unit`; Behat runs the `.feature` files (see the Tooling note
-  above, and why Laravel is pinned to 13.11.2). `behat/gherkin` is no longer a
-  direct dependency — it comes in transitively via `behat/behat`.
-- Persistence is currently in-memory (`app/Infrastructure/Persistence/InMemory`),
-  bound in `AppServiceProvider`. No scenario requires cross-request persistence;
-  swap in Eloquent-backed repositories there when one does, without touching
-  Domain or Application.
+- Pest and Behat are installed and green: Pest covers each component's unit and
+  feature tests under `app/<Component>/Tests`; Behat runs the `.feature` files
+  (see the Tooling note above, and why Laravel is pinned to 13.11.2).
+  `behat/gherkin` is no longer a direct dependency — it comes in transitively via
+  `behat/behat`.
+- Repositories live per component under `<Component>/Infrastructure/Persistence`
+  (both `Eloquent…` and `InMemory…` implementations); each component's
+  `<Component>ServiceProvider` binds its Eloquent-backed ones so the cart,
+  catalog and orders persist across HTTP requests. Swap implementations there
+  without touching Domain or UseCases.
