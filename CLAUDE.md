@@ -123,19 +123,31 @@ definition — a feature is not done until its scenarios are green. Run the full
 Gherkin suite to check that all documented behaviours are covered and that none
 have regressed.
 
-> Tooling note: Pest does not run `.feature` files natively. These need a
-> Gherkin runner (Behat is the standard for PHP) wired up alongside Pest.
-> Neither Pest nor a Gherkin runner is installed yet — see the open setup item
-> at the bottom of this file.
+> Tooling note: **Behat** (`vendor/bin/behat`) runs the `.feature` files.
+> `tests/Behat/FeatureContext.php` is a thin catch-all that delegates every step
+> to a regex-based step engine in `tests/Acceptance/ShoppingCartContext.php`.
+> Configured in `behat.yml`.
+>
+> Behat caps `symfony/console` at ^7, so it cannot run against Symfony 8. Laravel
+> is therefore pinned to **`laravel/framework 13.11.2`**, whose
+> `symfony/http-kernel` is 8.0.x and tolerates the Symfony 7.4 components Behat
+> needs. Do **not** bump Laravel to 13.12+ (which pulls `symfony/http-kernel`
+> 8.1 and re-breaks Behat) without revisiting this.
 
 ## Commands
 
-- Run all tests (Pest): `vendor/bin/pest` (or `php artisan test`)
-- Run Gherkin acceptance suite: `vendor/bin/behat`
+- Run the Pest unit suite (Domain + Application): `vendor/bin/pest` (or `php artisan test`)
+- Run the Gherkin acceptance suite (Behat): `vendor/bin/behat`
 - Code style: `vendor/bin/pint`
 - Tinker / REPL: `php artisan tinker`
 
-## Pending setup
+## Setup status
 
-- Pest, a Gherkin runner (e.g. Behat), and their config are **not yet
-  installed**. The commands above describe the intended workflow.
+- Pest and Behat are installed and green: Pest covers the Domain/Application unit
+  tests under `tests/Unit`; Behat runs the `.feature` files (see the Tooling note
+  above, and why Laravel is pinned to 13.11.2). `behat/gherkin` is no longer a
+  direct dependency — it comes in transitively via `behat/behat`.
+- Persistence is currently in-memory (`app/Infrastructure/Persistence/InMemory`),
+  bound in `AppServiceProvider`. No scenario requires cross-request persistence;
+  swap in Eloquent-backed repositories there when one does, without touching
+  Domain or Application.

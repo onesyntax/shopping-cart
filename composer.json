@@ -7,16 +7,20 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "laravel/framework": "^13.8",
+        "laravel/framework": "13.11.2",
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
+        "behat/behat": "^3.31",
         "fakerphp/faker": "^1.23",
+        "giorgiosironi/eris": "^1.1",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
+        "pestphp/pest": "^4.7",
+        "pestphp/pest-plugin-laravel": "^4.1",
         "phpunit/phpunit": "^12.5.12"
     },
     "autoload": {
@@ -47,6 +51,18 @@
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
+        ],
+        "mutate": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest --mutate --parallel --everything @no_additional_args"
+        ],
+        "crap": [
+            "@php artisan config:clear --ansi",
+            "@php -d pcov.enabled=1 vendor/bin/pest --coverage-crap4j=storage/crap4j.xml",
+            "@php tools/crap.php"
+        ],
+        "dry": [
+            "@php tools/dry.php"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
