@@ -54,6 +54,7 @@ it('places a paid order, issues an invoice, empties the cart and notifies', func
     expect($order->total()->format())->toBe('$200.00');
     expect($order->paymentReference)->not->toBeNull();
 
+    expect($this->orders->latestForOwner('alice')?->reference)->toBe($order->reference);
     expect($this->invoices->forOrder($order->reference)->total->format())->toBe('$200.00');
     expect($this->carts->forOwner('alice')->isEmpty())->toBeTrue();
 

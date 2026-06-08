@@ -32,6 +32,13 @@ it('takes the whole line off, however many units it holds', function (int $units
     expect($cart->total()->format())->toBe('$0.00');
 })->with([1, 3]);
 
+it('persists the removal so the emptied cart can be read back', function () {
+    $this->addToCart->handle(new AddItemToCartInput('alice', 'Hardcover notebook', 3));
+    $this->removeFromCart->handle(new RemoveItemFromCartInput('alice', 'Hardcover notebook'));
+
+    expect($this->carts->forOwner('alice')->isEmpty())->toBeTrue();
+});
+
 it('leaves other lines intact', function () {
     $this->addToCart->handle(new AddItemToCartInput('alice', 'Hardcover notebook', 2));
     $this->addToCart->handle(new AddItemToCartInput('alice', 'Ballpoint pen', 1));

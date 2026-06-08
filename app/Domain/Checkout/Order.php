@@ -44,7 +44,9 @@ final class Order
 
     public function quantityOf(string $itemName): int
     {
-        return $this->lineFor($itemName)?->quantity->value ?? 0;
+        $line = $this->lineFor($itemName);
+
+        return $line === null ? 0 : $line->quantity->value;
     }
 
     public function lineFor(string $itemName): ?OrderLine

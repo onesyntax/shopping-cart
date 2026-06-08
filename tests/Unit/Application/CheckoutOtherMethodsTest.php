@@ -50,6 +50,7 @@ describe('bank deposit', function () {
         expect($order->depositReference)->toBe('BD-48217');
         expect($order->depositDate)->toBe('2026-06-01');
         expect($order->total()->format())->toBe('$200.00');
+        expect($this->orders->latestForOwner('alice')?->reference)->toBe($order->reference);
         expect($this->invoices->forOrder($order->reference))->toBeNull();
         expect($this->carts->forOwner('alice')->isEmpty())->toBeTrue();
 
@@ -78,6 +79,7 @@ describe('cash on delivery', function () {
         expect($order->status)->toBe(OrderStatus::AwaitingPaymentOnDelivery);
         expect($order->paymentMethod->label())->toBe('cash on delivery');
         expect($order->total()->format())->toBe('$200.00');
+        expect($this->orders->latestForOwner('alice')?->reference)->toBe($order->reference);
         expect($this->invoices->forOrder($order->reference)->total->format())->toBe('$200.00');
         expect($this->carts->forOwner('alice')->isEmpty())->toBeTrue();
         expect($this->notifier->lastFor('alice')->kind)->toBe(NotificationKind::AwaitingPaymentOnDelivery);
@@ -105,6 +107,7 @@ describe('cash on hand', function () {
         expect($order->paymentMethod->label())->toBe('cash on hand');
         expect($order->lineCount())->toBe(2);
         expect($order->total()->format())->toBe('$250.00');
+        expect($this->orders->latestForOwner('alice')?->reference)->toBe($order->reference);
         expect($this->invoices->forOrder($order->reference)->total->format())->toBe('$250.00');
         expect($this->carts->forOwner('alice')->isEmpty())->toBeTrue();
         expect($this->notifier->lastFor('alice')->kind)->toBe(NotificationKind::OrderPaid);

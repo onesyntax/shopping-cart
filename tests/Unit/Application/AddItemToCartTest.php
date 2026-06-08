@@ -38,6 +38,14 @@ it('adds several units in one go', function () {
     expect($cart->total()->format())->toBe('$300.00');
 });
 
+it('persists the cart so it can be read back from the repository', function () {
+    $this->addToCart->handle(new AddItemToCartInput('alice', 'Hardcover notebook', 2));
+
+    $stored = $this->carts->forOwner('alice');
+    expect($stored->quantityOf('Hardcover notebook'))->toBe(2);
+    expect($stored->total()->format())->toBe('$200.00');
+});
+
 it('merges into the existing line when the item is already in the cart', function () {
     $this->addToCart->handle(new AddItemToCartInput('alice', 'Hardcover notebook', 2));
     $cart = $this->addToCart->handle(new AddItemToCartInput('alice', 'Hardcover notebook', 4));
