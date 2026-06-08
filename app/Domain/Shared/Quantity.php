@@ -29,11 +29,7 @@ final class Quantity
     public static function from(int|float|string $raw): self
     {
         if (is_string($raw)) {
-            $trimmed = trim($raw);
-            if (! preg_match('/^-?\d+(\.\d+)?$/', $trimmed)) {
-                throw new DomainException('The quantity must be a whole number.');
-            }
-            $raw = str_contains($trimmed, '.') ? (float) $trimmed : (int) $trimmed;
+            $raw = self::parseNumericString($raw);
         }
 
         if (is_float($raw)) {
@@ -46,6 +42,20 @@ final class Quantity
         }
 
         return self::of($raw);
+    }
+
+    /**
+     * Parse a numeric string into an int (no decimal point) or float (with one),
+     * rejecting anything that is not a plain decimal number.
+     */
+    private static function parseNumericString(string $raw): int|float
+    {
+        $trimmed = trim($raw);
+        if (! preg_match('/^-?\d+(\.\d+)?$/', $trimmed)) {
+            throw new DomainException('The quantity must be a whole number.');
+        }
+
+        return str_contains($trimmed, '.') ? (float) $trimmed : (int) $trimmed;
     }
 
     public function plus(Quantity $other): self
